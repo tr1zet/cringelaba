@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#f6ce2f" />
+    <meta name="description" content="Интерактивный редактор мема с миньоном" />
+    <title>Миньон говорит — редактор мема</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="welcome" id="welcome" aria-labelledby="welcome-title">
+        <div class="welcome__glow" aria-hidden="true"></div>
+        <div class="welcome__card">
+          <div class="eyebrow"><span></span> Генератор неловких ответов</div>
+          <h1 id="welcome-title">Миньон<br /><em>говорит.</em></h1>
+          <p class="welcome__lead">Задай вопрос, придумай ответ — и получи мем, который слишком жизненный, чтобы им не поделиться.</p>
+
+          <form class="meme-form" id="meme-form">
+            <label for="question">Вопрос</label>
+            <textarea id="question" name="question" rows="2" maxlength="90" placeholder="Например: Ты уже сделал лабу?" required></textarea>
+
+            <label for="answer">Ответ</label>
+            <textarea id="answer" name="answer" rows="2" maxlength="90" placeholder="Например: Я морально готовлюсь" required></textarea>
+
+            <button class="primary-button" type="submit">
+              Создать мем
+              <span aria-hidden="true">↗</span>
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <section class="meme-screen" id="meme-screen" aria-label="Редактор мема" hidden>
+        <header class="topbar">
+          <button class="home-button" id="restart-button" type="button" aria-label="Вернуться на главную">
+            <span class="home-button__icon" aria-hidden="true">↙</span>
+            <span class="home-button__text"><small>Назад к форме</small><span class="home-button__desktop">Вернуться домой</span><span class="home-button__mobile">Домой</span></span>
+          </button>
+          <div class="topbar__actions">
+            <button class="icon-button" id="fullscreen-button" type="button" aria-label="Открыть во весь экран" title="Во весь экран">⛶</button>
+            <button class="secondary-button" id="edit-button" type="button">✎ Редактировать</button>
+          </div>
+        </header>
+
+        <button class="fullscreen-edge fullscreen-edge--top" type="button" aria-label="Показать панели управления"></button>
+        <button class="fullscreen-edge fullscreen-edge--bottom" type="button" aria-label="Показать панели управления"></button>
+
+        <div class="canvas-shell">
+          <div class="meme-frame" id="meme-frame">
+            <img id="meme-image" src="assets/minion.jpg" alt="Миньон стоит ночью в лесу" />
+            <div class="caption caption--top" id="question-caption" contenteditable="true" role="textbox" aria-label="Текст вопроса" spellcheck="false"></div>
+            <div class="caption caption--bottom" id="answer-caption" contenteditable="true" role="textbox" aria-label="Текст ответа" spellcheck="false"></div>
+            <div class="edit-badge" id="edit-badge">Нажми на текст, чтобы изменить</div>
+          </div>
+        </div>
+
+        <footer class="bottom-actions">
+          <p><span class="status-dot"></span> Мем готов</p>
+          <button class="download-button" id="download-button" type="button">Скачать JPG <span aria-hidden="true">↓</span></button>
+        </footer>
+
+        <aside class="editor" id="editor" aria-labelledby="editor-title" aria-hidden="true">
+          <div class="editor__head">
+            <div>
+              <span class="eyebrow">Настройки</span>
+              <h2 id="editor-title">Редактор текста</h2>
+            </div>
+            <button class="close-button" id="close-editor" type="button" aria-label="Закрыть редактор">×</button>
+          </div>
+
+          <label for="edit-question">Вопрос</label>
+          <textarea id="edit-question" rows="2" maxlength="90"></textarea>
+          <label for="edit-answer">Ответ</label>
+          <textarea id="edit-answer" rows="2" maxlength="90"></textarea>
+
+          <div class="editor__row">
+            <label for="font-size">Размер <output id="font-size-value">48</output></label>
+            <input id="font-size" type="range" min="26" max="74" value="48" />
+          </div>
+
+          <label for="font-family">Шрифт</label>
+          <select id="font-family">
+            <option value='Impact, "Arial Black", sans-serif'>Классический мем</option>
+            <option value='"Arial Black", Arial, sans-serif'>Жирный</option>
+            <option value='Georgia, "Times New Roman", serif'>Драматичный</option>
+            <option value='"Trebuchet MS", Arial, sans-serif'>Комикс</option>
+          </select>
+
+          <fieldset>
+            <legend>Цвет текста</legend>
+            <div class="color-options">
+              <label><input type="radio" name="text-color" value="#ffffff" checked /><span class="swatch swatch--white"></span>Белый</label>
+              <label><input type="radio" name="text-color" value="#f6ce2f" /><span class="swatch swatch--yellow"></span>Жёлтый</label>
+              <label><input type="radio" name="text-color" value="#63d6ff" /><span class="swatch swatch--blue"></span>Голубой</label>
+              <label><input type="radio" name="text-color" value="#ff6fae" /><span class="swatch swatch--pink"></span>Розовый</label>
+              <label><input type="radio" name="text-color" value="#7ee081" /><span class="swatch swatch--green"></span>Зелёный</label>
+              <label><input type="radio" name="text-color" value="#ff8f3d" /><span class="swatch swatch--orange"></span>Оранжевый</label>
+              <label class="custom-color"><input id="custom-color" type="color" value="#b388ff" /><span>Свой цвет</span></label>
+            </div>
+          </fieldset>
+
+          <button class="primary-button" id="done-button" type="button">Готово <span aria-hidden="true">✓</span></button>
+        </aside>
+        <button class="editor-backdrop" id="editor-backdrop" type="button" aria-label="Закрыть редактор" tabindex="-1"></button>
+      </section>
+    </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite">Мем сохранён</div>
+    <script src="app.js"></script>
+  </body>
+</html>
