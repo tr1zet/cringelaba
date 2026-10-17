@@ -13,6 +13,11 @@ const speakingState = $("#speaking-state");
 const soundToggle = $("#sound-toggle");
 const soundText = soundToggle.querySelector(".sound__text");
 const toast = $("#toast");
+const introGate = $("#intro-gate");
+const enterDarkness = $("#enter-darkness");
+const menuMusic = $("#menu-music");
+const siteHeader = $("#site-header");
+const siteMain = $("#site-main");
 
 const visions = [
   "Вижу дверь, которую ты долго боялся открыть.",
@@ -84,6 +89,10 @@ let ambienceNodes = [];
 let ghostTimer;
 let typingTimer;
 let toastTimer;
+let musicFadeFrame;
+let ritualEntered = false;
+let demonicVoiceNodes = [];
+let demonicVoiceTimer;
 
 function hashText(text) {
   let hash = 2166136261;
@@ -110,6 +119,37 @@ function getAudioContext() {
     if (AudioCtx) audioContext = new AudioCtx();
   }
   return audioContext;
+}
+
+function fadeMenuMusic(target, duration = 900, pauseAfter = false) {
+  window.cancelAnimationFrame(musicFadeFrame);
+  if (!menuMusic) return;
+  const from = menuMusic.volume;
+  const started = performance.now();
+  const step = (now) => {
+    const progress = Math.min(1, (now - started) / duration);
+    const eased = 1 - ((1 - progress) ** 3);
+    menuMusic.volume = Math.max(0, Math.min(1, from + ((target - from) * eased)));
+    if (progress < 1) musicFadeFrame = window.requestAnimationFrame(step);
+    else if (pauseAfter) menuMusic.pause();
+  };
+  musicFadeFrame = window.requestAnimationFrame(step);
+}
+
+async function startMenuMusic(restart = false) {
+  if (!ritualEntered || !soundEnabled || !menuMusic) return;
+  if (restart) menuMusic.currentTime = 0;
+  menuMusic.volume = 0;
+  try {
+    await menuMusic.play();
+    fadeMenuMusic(.34, 1400);
+  } catch {
+    showToast("Коснись значка звука, чтобы разбудить музыку");
+  }
+}
+
+function stopMenuMusic() {
+  fadeMenuMusic(0, 650, true);
 }
 
 function startAmbience() {
@@ -188,6 +228,63 @@ function playSummoningSound() {
   oscillator.connect(gain).connect(context.destination); oscillator.start(now); oscillator.stop(now + 1.2);
 }
 
+function makeDistortionCurve(amount = 70) {
+  const curve = new Float32Array(256);
+  for (let index = 0; index < curve.length; index += 1) {
+    const x = (index * 2 / curve.length) - 1;
+    curve[index] = ((3 + amount) * x * 20 * Math.PI / 180) / (Math.PI + amount * Math.abs(x));
+  }
+  return curve;
+}
+
+function stopDemonicVoice() {
+  window.clearInterval(demonicVoiceTimer);
+  demonicVoiceNodes.forEach((node) => {
+    try { if (node.stop) node.stop(); }
+    catch {}
+    try { node.disconnect(); }
+    catch {}
+  });
+  demonicVoiceNodes = [];
+}
+
+function startDemonicVoice() {
+  stopDemonicVoice();
+  if (!soundEnabled) return;
+  const context = getAudioContext();
+  if (!context) return;
+  const now = context.currentTime;
+  const master = context.createGain();
+  const filter = context.createBiquadFilter();
+  const distortion = context.createWaveShaper();
+  const tremolo = context.createOscillator();
+  const tremoloDepth = context.createGain();
+  master.gain.setValueAtTime(.0001, now);
+  master.gain.exponentialRampToValueAtTime(.075, now + .32);
+  filter.type = "lowpass";
+  filter.frequency.value = 135;
+  filter.Q.value = 8;
+  distortion.curve = makeDistortionCurve(95);
+  distortion.oversample = "4x";
+  tremolo.frequency.value = 3.2;
+  tremoloDepth.gain.value = .022;
+  tremolo.connect(tremoloDepth).connect(master.gain);
+  [34, 42.5, 51].forEach((frequency, index) => {
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = index === 1 ? "sawtooth" : "triangle";
+    oscillator.frequency.value = frequency;
+    gain.gain.value = index === 1 ? .22 : .5;
+    oscillator.connect(gain).connect(filter);
+    oscillator.start();
+    demonicVoiceNodes.push(oscillator, gain);
+  });
+  filter.connect(distortion).connect(master).connect(context.destination);
+  tremolo.start();
+  demonicVoiceNodes.push(master, filter, distortion, tremolo, tremoloDepth);
+  demonicVoiceTimer = window.setInterval(() => playGhostWail(.28), 2400);
+}
+
 function selectVoice() {
   const voices = window.speechSynthesis?.getVoices() || [];
   const russian = voices.filter((voice) => voice.lang.toLowerCase().startsWith("ru"));
@@ -196,17 +293,26 @@ function selectVoice() {
 }
 
 function speak(text = currentPrediction) {
-  if (!text || !soundEnabled || !("speechSynthesis" in window)) return;
-  window.speechSynthesis.cancel();
+  if (!text || !soundEnabled) return;
+  window.speechSynthesis?.cancel();
+  window.setTimeout(() => {
+    if (!soundEnabled || oracleScreen.hidden) return;
+    startDemonicVoice();
+    oracleScreen.classList.add("is-speaking");
+  }, 60);
+  if (!("speechSynthesis" in window)) {
+    window.setTimeout(() => { stopDemonicVoice(); oracleScreen.classList.remove("is-speaking"); }, Math.max(3600, text.length * 70));
+    return;
+  }
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.voice = selectVoice();
   utterance.lang = "ru-RU";
-  utterance.rate = .68;
-  utterance.pitch = .18;
+  utterance.rate = .55;
+  utterance.pitch = .02;
   utterance.volume = 1;
   utterance.onstart = () => oracleScreen.classList.add("is-speaking");
-  utterance.onend = () => oracleScreen.classList.remove("is-speaking");
-  utterance.onerror = () => oracleScreen.classList.remove("is-speaking");
+  utterance.onend = () => { stopDemonicVoice(); oracleScreen.classList.remove("is-speaking"); };
+  utterance.onerror = () => { stopDemonicVoice(); oracleScreen.classList.remove("is-speaking"); };
   window.speechSynthesis.speak(utterance);
   window.setTimeout(() => playGhostWail(.45), 900);
 }
@@ -246,6 +352,7 @@ function openOracle() {
 
 function summonOracle(text) {
   currentQuestion = text;
+  stopMenuMusic();
   summoning.classList.add("is-visible");
   summoning.setAttribute("aria-hidden", "false");
   playSummoningSound();
@@ -264,6 +371,8 @@ function returnToQuestion() {
   questionScreen.hidden = false;
   questionScreen.classList.add("is-active");
   stopAmbience();
+  stopDemonicVoice();
+  startMenuMusic(true);
   document.body.scrollTop = 0;
   document.documentElement.scrollTop = 0;
   window.setTimeout(() => questionInput.focus(), 250);
@@ -317,10 +426,31 @@ soundToggle.addEventListener("click", () => {
   soundToggle.setAttribute("aria-label", soundEnabled ? "Выключить звук" : "Включить звук");
   soundText.textContent = soundEnabled ? "Звук включён" : "Без звука";
   if (!soundEnabled) {
-    window.speechSynthesis?.cancel(); stopAmbience(); oracleScreen.classList.remove("is-speaking");
+    window.cancelAnimationFrame(musicFadeFrame); window.speechSynthesis?.cancel(); stopAmbience(); stopDemonicVoice(); menuMusic?.pause(); oracleScreen.classList.remove("is-speaking");
   } else if (!oracleScreen.hidden) {
     startAmbience(); speak();
+  } else if (ritualEntered) {
+    startMenuMusic();
   }
+});
+
+enterDarkness.addEventListener("click", async () => {
+  ritualEntered = true;
+  document.body.classList.remove("intro-open");
+  siteHeader.inert = false;
+  siteMain.inert = false;
+  siteHeader.removeAttribute("aria-hidden");
+  siteMain.removeAttribute("aria-hidden");
+  introGate.classList.add("is-leaving");
+  introGate.setAttribute("aria-hidden", "true");
+  startAmbience();
+  await startMenuMusic(true);
+  window.setTimeout(() => {
+    introGate.hidden = true;
+    introGate.removeAttribute("role");
+    introGate.removeAttribute("aria-modal");
+    questionInput.focus();
+  }, 1050);
 });
 
 createEmbers();

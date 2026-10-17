@@ -8,14 +8,35 @@
   <title>Тыквенный оракул — спроси у тьмы</title>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body class="intro-open">
   <div class="world" aria-hidden="true">
     <div class="grain"></div><div class="vignette"></div><div class="stars"></div>
     <div class="moon"></div><div class="fog fog--a"></div><div class="fog fog--b"></div>
     <div class="embers" id="embers"></div>
   </div>
 
-  <header class="topbar">
+  <section class="intro-gate" id="intro-gate" role="dialog" aria-modal="true" aria-labelledby="intro-title">
+    <div class="web-corner web-corner--left" aria-hidden="true"></div>
+    <div class="web-corner web-corner--right" aria-hidden="true"></div>
+    <div class="hanging-bats" aria-hidden="true"><i>◆</i><i>◆</i><i>◆</i><i>◆</i><i>◆</i></div>
+    <div class="gate-candles gate-candles--left" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="gate-candles gate-candles--right" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="gate-sigil" aria-hidden="true"><span>☾</span><i></i><b>ᛟ</b></div>
+    <div class="intro-gate__content">
+      <p class="intro-overline">Интерактивный ритуал · сеанс № 13</p>
+      <h1 id="intro-title">Ночь знает<br><em>твоё имя</em></h1>
+      <p class="intro-copy">Задай вопрос тому, кто просыпается лишь в Хэллоуин. Надень наушники — некоторые ответы лучше не слышать вслух.</p>
+      <button class="enter-darkness" id="enter-darkness" type="button">
+        <span>Войти во тьму</span><i aria-hidden="true">✦</i>
+      </button>
+      <p class="sound-notice"><span></span> После входа зазвучит музыка</p>
+    </div>
+    <p class="gate-date" aria-hidden="true">31 · 10 · ∞</p>
+  </section>
+
+  <audio id="menu-music" src="assets/oracle-theme.mp3" preload="auto" loop></audio>
+
+  <header class="topbar" id="site-header" inert aria-hidden="true">
     <button class="brand" id="brand-home" type="button" aria-label="Вернуться к вопросу">
       <span class="brand__seal">ᛟ</span><span>Тыквенный оракул</span>
     </button>
@@ -26,7 +47,7 @@
     </button>
   </header>
 
-  <main>
+  <main id="site-main" inert aria-hidden="true">
     <section class="screen question-screen is-active" id="question-screen" aria-labelledby="question-title">
       <div class="ritual-circle" aria-hidden="true">
         <span>☽</span><span>✦</span><span>ᚨ</span><span>✧</span>
