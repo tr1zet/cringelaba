@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#050307">
   <meta name="description" content="Задай вопрос древнему тыквенному оракулу и услышь своё предсказание.">
   <title>Тыквенный оракул — спроси у тьмы</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=20261017-3">
 </head>
 <body class="intro-open">
   <div class="world" aria-hidden="true">
@@ -34,6 +34,7 @@
   </section>
 
   <audio id="menu-music" src="assets/oracle-theme.mp3" preload="auto" loop></audio>
+  <audio id="oracle-laugh" src="assets/oracle-deep-laugh.mp3" preload="auto"></audio>
 
   <header class="topbar" id="site-header" inert aria-hidden="true">
     <button class="brand" id="brand-home" type="button" aria-label="Вернуться к вопросу">
@@ -48,6 +49,13 @@
 
   <main id="site-main" inert aria-hidden="true">
     <section class="screen question-screen is-active" id="question-screen" aria-labelledby="question-title">
+      <div class="question-haunt" aria-hidden="true">
+        <div class="question-web question-web--left"></div>
+        <div class="question-web question-web--right"></div>
+        <i class="hanging-spider hanging-spider--left"></i>
+        <i class="hanging-spider hanging-spider--right"></i>
+        <div class="graveyard"><i></i><i></i><i></i><i></i><i></i></div>
+      </div>
       <div class="ritual-circle" aria-hidden="true">
         <span>☽</span><span>✦</span><span>ᚨ</span><span>✧</span>
       </div>
@@ -102,6 +110,6 @@
   </div>
   <div class="lightning" id="lightning" aria-hidden="true"></div>
   <div class="toast" id="toast" role="status"></div>
-  <script src="app.js"></script>
+  <script src="app.js?v=20261017-5"></script>
 </body>
 </html>

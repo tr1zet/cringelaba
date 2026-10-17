@@ -16,6 +16,7 @@ const toast = $("#toast");
 const introGate = $("#intro-gate");
 const enterDarkness = $("#enter-darkness");
 const menuMusic = $("#menu-music");
+const oracleLaugh = $("#oracle-laugh");
 const siteHeader = $("#site-header");
 const siteMain = $("#site-main");
 
@@ -93,6 +94,14 @@ let musicFadeFrame;
 let ritualEntered = false;
 let demonicVoiceNodes = [];
 let demonicVoiceTimer;
+let speakingWatchdog;
+const speakingSources = new Set();
+
+function setSpeakingSource(source, active) {
+  if (active) speakingSources.add(source);
+  else speakingSources.delete(source);
+  oracleScreen.classList.toggle("is-speaking", speakingSources.size > 0);
+}
 
 function hashText(text) {
   let hash = 2166136261;
@@ -246,6 +255,7 @@ function stopDemonicVoice() {
     catch {}
   });
   demonicVoiceNodes = [];
+  setSpeakingSource("demonic-bed", false);
 }
 
 function startDemonicVoice() {
@@ -253,6 +263,7 @@ function startDemonicVoice() {
   if (!soundEnabled) return;
   const context = getAudioContext();
   if (!context) return;
+  setSpeakingSource("demonic-bed", true);
   const now = context.currentTime;
   const master = context.createGain();
   const filter = context.createBiquadFilter();
@@ -324,21 +335,25 @@ function selectVoice() {
     || null;
 }
 
-function speak(text = currentPrediction) {
-  if (!text || !soundEnabled) return;
-  window.speechSynthesis?.cancel();
-  window.setTimeout(() => {
-    if (!soundEnabled || oracleScreen.hidden) return;
-    startDemonicVoice();
-    oracleScreen.classList.add("is-speaking");
-  }, 60);
-  if (!("speechSynthesis" in window)) {
-    window.setTimeout(() => { stopDemonicVoice(); oracleScreen.classList.remove("is-speaking"); }, Math.max(3600, text.length * 70));
-    return;
-  }
+function playOracleLaugh() {
+  if (!soundEnabled || !oracleLaugh) return;
+  oracleLaugh.pause();
+  oracleLaugh.currentTime = 0;
+  oracleLaugh.volume = .82;
+  oracleLaugh.play().catch(() => setSpeakingSource("laugh", false));
+}
+
+function stopBedAfterLaugh() {
+  if (oracleLaugh.paused || oracleLaugh.ended) stopDemonicVoice();
+  else oracleLaugh.addEventListener("ended", stopDemonicVoice, { once: true });
+}
+
+function startMaleNarration(text, attempt = 0) {
+  if (!("speechSynthesis" in window) || !soundEnabled || oracleScreen.hidden) return;
   const maleVoice = selectVoice();
   if (!maleVoice) {
-    window.setTimeout(() => { stopDemonicVoice(); oracleScreen.classList.remove("is-speaking"); }, Math.max(3600, text.length * 70));
+    if (attempt < 8) window.setTimeout(() => startMaleNarration(text, attempt + 1), 180);
+    else stopBedAfterLaugh();
     return;
   }
   const utterance = new SpeechSynthesisUtterance(text);
@@ -347,10 +362,37 @@ function speak(text = currentPrediction) {
   utterance.rate = .5;
   utterance.pitch = 0;
   utterance.volume = 1;
-  utterance.onstart = () => oracleScreen.classList.add("is-speaking");
-  utterance.onend = () => { stopDemonicVoice(); oracleScreen.classList.remove("is-speaking"); };
-  utterance.onerror = () => { stopDemonicVoice(); oracleScreen.classList.remove("is-speaking"); };
+  utterance.onstart = () => setSpeakingSource("speech", true);
+  utterance.onend = () => { setSpeakingSource("speech", false); stopDemonicVoice(); };
+  utterance.onerror = () => { setSpeakingSource("speech", false); stopDemonicVoice(); };
   window.speechSynthesis.speak(utterance);
+}
+
+function speak(text = currentPrediction) {
+  if (!text || !soundEnabled) return;
+  window.clearInterval(speakingWatchdog);
+  window.speechSynthesis?.cancel();
+  setSpeakingSource("speech", false);
+  playOracleLaugh();
+  window.setTimeout(() => {
+    if (!soundEnabled || oracleScreen.hidden) return;
+    startDemonicVoice();
+  }, 60);
+  speakingWatchdog = window.setInterval(() => {
+    const laughActive = !oracleLaugh.paused && !oracleLaugh.ended;
+    const speechActive = Boolean(window.speechSynthesis?.speaking);
+    if (!laughActive && !speechActive) {
+      stopDemonicVoice();
+      speakingSources.clear();
+      oracleScreen.classList.remove("is-speaking");
+      window.clearInterval(speakingWatchdog);
+    }
+  }, 250);
+  if (!("speechSynthesis" in window)) {
+    stopBedAfterLaugh();
+    return;
+  }
+  startMaleNarration(text);
   window.setTimeout(() => playGhostWail(.45), 900);
 }
 
@@ -359,7 +401,6 @@ function typePrediction(text) {
   predictionBox.textContent = "";
   oracleScreen.classList.remove("is-complete");
   speakingState.innerHTML = "<span></span> Слушай внимательно…";
-  speak(text);
   let index = 0;
   typingTimer = window.setInterval(() => {
     predictionBox.textContent += text[index];
@@ -368,7 +409,7 @@ function typePrediction(text) {
       window.clearInterval(typingTimer);
       oracleScreen.classList.add("is-complete");
       speakingState.innerHTML = "<span></span> Пророчество завершено";
-      if (!window.speechSynthesis?.speaking) oracleScreen.classList.remove("is-speaking");
+      if (!window.speechSynthesis?.speaking) setSpeakingSource("speech", false);
     }
   }, 28);
 }
@@ -384,6 +425,7 @@ function openOracle() {
   summoning.setAttribute("aria-hidden", "true");
   document.body.scrollTop = 0;
   document.documentElement.scrollTop = 0;
+  speak(currentPrediction);
   window.setTimeout(() => typePrediction(currentPrediction), 480);
 }
 
@@ -402,6 +444,7 @@ function summonOracle(text) {
 
 function returnToQuestion() {
   window.clearInterval(typingTimer);
+  window.clearInterval(speakingWatchdog);
   window.speechSynthesis?.cancel();
   oracleScreen.hidden = true;
   oracleScreen.classList.remove("is-active", "is-speaking", "is-complete");
@@ -409,6 +452,10 @@ function returnToQuestion() {
   questionScreen.classList.add("is-active");
   stopAmbience();
   stopDemonicVoice();
+  oracleLaugh.pause();
+  oracleLaugh.currentTime = 0;
+  speakingSources.clear();
+  oracleScreen.classList.remove("is-speaking");
   startMenuMusic(true);
   document.body.scrollTop = 0;
   document.documentElement.scrollTop = 0;
@@ -463,13 +510,24 @@ soundToggle.addEventListener("click", () => {
   soundToggle.setAttribute("aria-label", soundEnabled ? "Выключить звук" : "Включить звук");
   soundText.textContent = soundEnabled ? "Звук включён" : "Без звука";
   if (!soundEnabled) {
-    window.cancelAnimationFrame(musicFadeFrame); window.speechSynthesis?.cancel(); stopAmbience(); stopDemonicVoice(); menuMusic?.pause(); oracleScreen.classList.remove("is-speaking");
+    window.cancelAnimationFrame(musicFadeFrame); window.clearInterval(speakingWatchdog); window.speechSynthesis?.cancel(); stopAmbience(); stopDemonicVoice(); menuMusic?.pause(); oracleLaugh?.pause(); speakingSources.clear(); oracleScreen.classList.remove("is-speaking");
   } else if (!oracleScreen.hidden) {
     startAmbience(); speak();
   } else if (ritualEntered) {
     startMenuMusic();
   }
 });
+
+oracleLaugh.addEventListener("play", () => setSpeakingSource("laugh", true));
+oracleLaugh.addEventListener("ended", () => {
+  setSpeakingSource("laugh", false);
+  if (!window.speechSynthesis?.speaking) {
+    stopDemonicVoice();
+    speakingSources.clear();
+    oracleScreen.classList.remove("is-speaking");
+  }
+});
+oracleLaugh.addEventListener("pause", () => setSpeakingSource("laugh", false));
 
 enterDarkness.addEventListener("click", async () => {
   ritualEntered = true;
