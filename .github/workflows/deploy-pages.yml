@@ -2,7 +2,7 @@ name: Deploy GitHub Pages
 
 on:
   push:
-    branches: [main, codex/halloween-oracle]
+    branches: [main, halloween-oracle]
   workflow_dispatch:
 
 permissions:
@@ -30,7 +30,7 @@ jobs:
       - name: Checkout Halloween site
         uses: actions/checkout@v4
         with:
-          ref: codex/halloween-oracle
+          ref: halloween-oracle
           path: halloween-site
 
       - name: Build independent Pages paths
