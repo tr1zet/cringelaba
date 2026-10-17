@@ -3,84 +3,83 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#09060d">
-  <meta name="description" content="Задай вопрос говорящей тыкве и узнай своё пугающе нелепое будущее.">
-  <title>Тыквенный оракул — полуночное предсказание</title>
+  <meta name="theme-color" content="#050307">
+  <meta name="description" content="Задай вопрос древнему тыквенному оракулу и услышь своё предсказание.">
+  <title>Тыквенный оракул — спроси у тьмы</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="scene" aria-hidden="true">
-    <div class="moon"></div><div class="stars"></div>
-    <div class="bat bat--one">⌁</div><div class="bat bat--two">⌁</div>
-    <div class="fog fog--one"></div><div class="fog fog--two"></div>
+  <div class="world" aria-hidden="true">
+    <div class="grain"></div><div class="vignette"></div><div class="stars"></div>
+    <div class="moon"></div><div class="fog fog--a"></div><div class="fog fog--b"></div>
     <div class="embers" id="embers"></div>
   </div>
 
   <header class="topbar">
-    <a class="brand" href="#top" aria-label="Тыквенный оракул — на главную">
-      <span class="brand__mark">✦</span><span>Тыквенный оракул</span>
-    </a>
-    <div class="session-status" aria-label="Статус сеанса">
-      <span class="session-status__dot"></span>Сеанс открыт до рассвета
-    </div>
-    <button class="sound-toggle" id="sound-toggle" type="button" aria-pressed="true" aria-label="Выключить звук">
-      <span class="sound-toggle__icon" aria-hidden="true">◖</span>
-      <span class="sound-toggle__label">Звук включён</span>
+    <button class="brand" id="brand-home" type="button" aria-label="Вернуться к вопросу">
+      <span class="brand__seal">ᛟ</span><span>Тыквенный оракул</span>
+    </button>
+    <p class="night-status"><i></i> Канал между мирами открыт</p>
+    <button class="sound" id="sound-toggle" type="button" aria-pressed="true" aria-label="Выключить звук">
+      <span class="sound__waves" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="sound__text">Звук включён</span>
     </button>
   </header>
 
-  <main id="top">
-    <section class="oracle-layout" aria-labelledby="main-title">
-      <div class="intro">
-        <p class="eyebrow"><span></span> Полуночный сеанс № 13</p>
-        <h1 id="main-title">Спроси у<br><em>тьмы</em></h1>
-        <p class="lead">Она уже знает ответ. Просто ещё не решила, насколько сильно тебя напугать.</p>
-        <form class="question-card" id="oracle-form">
-          <label for="question">Твой вопрос о будущем</label>
-          <div class="input-wrap">
-            <textarea id="question" name="question" rows="2" maxlength="140" required placeholder="Получу ли я зачёт?.."></textarea>
-            <span class="char-count"><b id="char-count">0</b>/140</span>
+  <main>
+    <section class="screen question-screen is-active" id="question-screen" aria-labelledby="question-title">
+      <div class="ritual-circle" aria-hidden="true">
+        <span>☽</span><span>✦</span><span>ᚨ</span><span>✧</span>
+      </div>
+      <div class="question-content">
+        <p class="kicker"><span></span> Полуночный сеанс № 13 <span></span></p>
+        <h1 id="question-title">Задай вопрос<br><em>тьме</em></h1>
+        <p class="question-lead">Произнеси то, что не даёт тебе уснуть. Оракул услышит — даже если ты напишешь шёпотом.</p>
+        <form id="oracle-form" class="question-form">
+          <label for="question">Твой вопрос</label>
+          <div class="question-field">
+            <textarea id="question" maxlength="160" rows="3" required placeholder="Что ждёт меня завтра?.."></textarea>
+            <span><b id="char-count">0</b>/160</span>
           </div>
-          <button class="summon-button" type="submit">
-            <span>Разбудить оракула</span><span class="summon-button__orb" aria-hidden="true">✦</span>
+          <button class="summon" type="submit">
+            <span>Призвать оракула</span><i aria-hidden="true">↟</i>
           </button>
-          <p class="hint"><span>☾</span> Лучше спрашивать после полуночи. Но мы никому не скажем.</p>
         </form>
+        <p class="warning"><span>✦</span> Один вопрос — одно пророчество. Не вини тыкву, если правда окажется странной.</p>
       </div>
-
-      <div class="oracle-stage" id="oracle-stage">
-        <div class="sigil sigil--outer" aria-hidden="true"></div><div class="sigil sigil--inner" aria-hidden="true"></div>
-        <div class="stage-smoke stage-smoke--left" aria-hidden="true"></div><div class="stage-smoke stage-smoke--right" aria-hidden="true"></div>
-        <div class="pumpkin-wrap" aria-hidden="true">
-          <div class="stem"><i></i></div>
-          <div class="pumpkin" id="pumpkin">
-            <span class="pumpkin__lobe pumpkin__lobe--1"></span><span class="pumpkin__lobe pumpkin__lobe--2"></span>
-            <span class="pumpkin__lobe pumpkin__lobe--3"></span><span class="pumpkin__lobe pumpkin__lobe--4"></span><span class="pumpkin__lobe pumpkin__lobe--5"></span>
-            <div class="face">
-              <div class="eye eye--left"><i class="pupil"></i></div><div class="eye eye--right"><i class="pupil"></i></div>
-              <div class="nose"></div><div class="mouth"><i></i><i></i><i></i><i></i><i></i></div>
-            </div>
-          </div>
-          <div class="table-shadow"></div>
-        </div>
-        <div class="speech-rune" aria-hidden="true">ᛟ</div>
-        <p class="stage-caption" id="stage-caption">Оракул дремлет… пока что</p>
-      </div>
+      <div class="question-footer" aria-hidden="true"><span>ᛃ</span><span>ᚱ</span><span>ᚹ</span><span>ᛞ</span><span>ᛇ</span></div>
     </section>
 
-    <section class="result" id="result" aria-live="polite" aria-labelledby="result-title" hidden>
-      <div class="result__ornament" aria-hidden="true">✦ ─── ☾ ─── ✦</div>
-      <p class="result__question" id="result-question"></p>
-      <h2 id="result-title">Оракул шепчет</h2>
-      <blockquote id="prediction"></blockquote>
-      <div class="result__actions">
-        <button class="again-button" id="again-button" type="button">Задать другой вопрос</button>
-        <button class="share-button" id="share-button" type="button">Скопировать пророчество <span>↗</span></button>
+    <section class="screen oracle-screen" id="oracle-screen" aria-labelledby="oracle-title" hidden>
+      <div class="oracle-aura" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div class="oracle-visual" id="oracle-visual">
+        <div class="ghost ghost--left" aria-hidden="true"><i></i></div>
+        <div class="ghost ghost--right" aria-hidden="true"><i></i></div>
+        <div class="pumpkin-halo" aria-hidden="true"></div>
+        <img class="pumpkin-portrait" src="assets/pumpkin-oracle.webp" alt="Жуткий тыквенный оракул с горящими глазами">
+        <div class="altar-shadow" aria-hidden="true"></div>
+      </div>
+
+      <div class="prophecy-panel">
+        <p class="prophecy-label"><i></i> Оракул пробудился <i></i></p>
+        <p class="asked-question" id="asked-question"></p>
+        <h2 id="oracle-title">Он видит твоё будущее</h2>
+        <blockquote id="prediction" aria-live="polite"></blockquote>
+        <p class="speaking-state" id="speaking-state"><span></span> Слушай внимательно…</p>
+        <div class="prophecy-actions">
+          <button class="ask-again" id="ask-again" type="button">← Другой вопрос</button>
+          <button class="repeat" id="repeat-prophecy" type="button">Повторить голос <span>◖</span></button>
+          <button class="copy" id="copy-prophecy" type="button">Скопировать <span>↗</span></button>
+        </div>
       </div>
     </section>
   </main>
 
-  <footer><span>Не принимайте пророчества близко к сердцу</span><span class="footer-symbol">☠</span><span>Особенно если они сбылись</span></footer>
+  <div class="summoning" id="summoning" aria-hidden="true">
+    <div class="summoning__eye"></div>
+    <p>Кто-то услышал твой вопрос</p>
+  </div>
+  <div class="lightning" id="lightning" aria-hidden="true"></div>
   <div class="toast" id="toast" role="status"></div>
   <script src="app.js"></script>
 </body>
