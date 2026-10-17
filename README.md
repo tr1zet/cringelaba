@@ -7,3 +7,5 @@
 ## 🌐 Готовый сайт
 
 ### [Открыть мем-редактор →](https://tr1zet.github.io/cringelaba/)
+
+### [Открыть «Тыквенный оракул» →](https://tr1zet.github.io/cringelaba/halloween/)
