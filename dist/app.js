@@ -282,14 +282,46 @@ function startDemonicVoice() {
   filter.connect(distortion).connect(master).connect(context.destination);
   tremolo.start();
   demonicVoiceNodes.push(master, filter, distortion, tremolo, tremoloDepth);
-  demonicVoiceTimer = window.setInterval(() => playGhostWail(.28), 2400);
+  demonicVoiceTimer = window.setInterval(() => {
+    playGhostWail(.28);
+    playDemonicCrackle();
+  }, 1900);
+}
+
+function playDemonicCrackle() {
+  if (!soundEnabled) return;
+  const context = getAudioContext();
+  if (!context) return;
+  const now = context.currentTime;
+  const length = Math.floor(context.sampleRate * .34);
+  const buffer = context.createBuffer(1, length, context.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let index = 0; index < length; index += 1) {
+    const envelope = 1 - (index / length);
+    data[index] = (Math.random() * 2 - 1) * envelope * (Math.random() > .82 ? 1 : .16);
+  }
+  const source = context.createBufferSource();
+  const filter = context.createBiquadFilter();
+  const gain = context.createGain();
+  filter.type = "bandpass";
+  filter.frequency.value = 230 + Math.random() * 190;
+  filter.Q.value = 7;
+  gain.gain.setValueAtTime(.0001, now);
+  gain.gain.exponentialRampToValueAtTime(.055, now + .025);
+  gain.gain.exponentialRampToValueAtTime(.0001, now + .34);
+  source.buffer = buffer;
+  source.playbackRate.value = .45;
+  source.connect(filter).connect(gain).connect(context.destination);
+  source.start(now);
 }
 
 function selectVoice() {
   const voices = window.speechSynthesis?.getVoices() || [];
   const russian = voices.filter((voice) => voice.lang.toLowerCase().startsWith("ru"));
-  const darkNames = /pavel|maxim|yuri|dmit|male|муж/i;
-  return russian.find((voice) => darkNames.test(voice.name)) || russian[0] || voices.find((voice) => voice.lang.startsWith("en")) || null;
+  const maleNames = /pavel|pavel|paul|maxim|maksim|yuri|yuriy|dmit|alexander|aleksandr|mikhail|nikolai|ivan|vladimir|anton|artem|sergey|male|муж/i;
+  return russian.find((voice) => maleNames.test(voice.name))
+    || voices.find((voice) => maleNames.test(voice.name))
+    || null;
 }
 
 function speak(text = currentPrediction) {
@@ -304,11 +336,16 @@ function speak(text = currentPrediction) {
     window.setTimeout(() => { stopDemonicVoice(); oracleScreen.classList.remove("is-speaking"); }, Math.max(3600, text.length * 70));
     return;
   }
+  const maleVoice = selectVoice();
+  if (!maleVoice) {
+    window.setTimeout(() => { stopDemonicVoice(); oracleScreen.classList.remove("is-speaking"); }, Math.max(3600, text.length * 70));
+    return;
+  }
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.voice = selectVoice();
-  utterance.lang = "ru-RU";
-  utterance.rate = .55;
-  utterance.pitch = .02;
+  utterance.voice = maleVoice;
+  utterance.lang = maleVoice.lang || "ru-RU";
+  utterance.rate = .5;
+  utterance.pitch = 0;
   utterance.volume = 1;
   utterance.onstart = () => oracleScreen.classList.add("is-speaking");
   utterance.onend = () => { stopDemonicVoice(); oracleScreen.classList.remove("is-speaking"); };
