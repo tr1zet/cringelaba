@@ -2,7 +2,7 @@ name: Deploy GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [main, codex/halloween-oracle]
   workflow_dispatch:
 
 permissions:
@@ -21,8 +21,25 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout main site
         uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main-site
+
+      - name: Checkout Halloween site
+        uses: actions/checkout@v4
+        with:
+          ref: codex/halloween-oracle
+          path: halloween-site
+
+      - name: Build independent Pages paths
+        shell: bash
+        run: |
+          mkdir -p public/halloween
+          cp -R main-site/dist/. public/
+          cp -R halloween-site/dist/. public/halloween/
+          touch public/.nojekyll
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
@@ -30,7 +47,7 @@ jobs:
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: public
 
       - name: Deploy
         id: deployment
