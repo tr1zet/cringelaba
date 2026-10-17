@@ -1,274 +1,213 @@
 const $ = (selector) => document.querySelector(selector);
-
-const welcome = $("#welcome");
-const memeScreen = $("#meme-screen");
-const form = $("#meme-form");
-const questionInput = $("#question");
-const answerInput = $("#answer");
-const questionCaption = $("#question-caption");
-const answerCaption = $("#answer-caption");
-const editQuestion = $("#edit-question");
-const editAnswer = $("#edit-answer");
-const editor = $("#editor");
-const topbar = $(".topbar");
-const bottomActions = $(".bottom-actions");
-const fullscreenEdges = document.querySelectorAll(".fullscreen-edge");
-const fontSize = $("#font-size");
-const fontSizeValue = $("#font-size-value");
-const fontFamily = $("#font-family");
-const customColor = $("#custom-color");
+const form = $("#oracle-form");
+const question = $("#question");
+const charCount = $("#char-count");
+const stage = $("#oracle-stage");
+const stageCaption = $("#stage-caption");
+const result = $("#result");
+const resultQuestion = $("#result-question");
+const prediction = $("#prediction");
+const soundToggle = $("#sound-toggle");
+const soundLabel = soundToggle.querySelector(".sound-toggle__label");
 const toast = $("#toast");
-const doneButton = $("#done-button");
-const downloadButton = $("#download-button");
 
-let downloadUnlockTimer;
+const prophecies = [
+  "Да. Но только после того, как ты перестанешь обновлять страницу каждые три минуты.",
+  "Звёзды говорят: возможно. Тыква говорит: принеси печенье — обсудим.",
+  "Твоё будущее прекрасно. Жаль, что будильник прозвенит раньше.",
+  "Очень скоро случится нечто неожиданное: ты вспомнишь, зачем вошёл в комнату.",
+  "Ответ скрыт во тьме… рядом с носком, который пропал после стирки.",
+  "Не сегодня. Сегодня у судьбы технические работы до рассвета.",
+  "Да, но цена велика: придётся ответить на сообщение, которое ты игнорируешь третий день.",
+  "В полночь ты услышишь странный звук. Не бойся — это холодильник зовёт тебя по имени.",
+  "Тени шепчут, что всё получится. Они часто врут, но сейчас звучали убедительно.",
+  "Оракул видит успех, славу и… открытые двадцать семь вкладок в браузере.",
+  "Нет. Хотя если сделать вид, что так и было задумано, то определённо да.",
+  "Судьба уже отправила тебе знак. Ты случайно смахнул уведомление.",
+  "Приготовься: скоро кто-то произнесёт: есть минутка? И исчезнут два часа твоей жизни.",
+  "Луна благосклонна. Дедлайн — нет. Беги, смертный.",
+  "Твой вопрос потревожил древнее зло. Оно просит больше конкретики.",
+  "Вероятность успеха — восемьдесят семь процентов. Остальные заняты драматичной музыкой.",
+  "Ты стоишь на пороге великого открытия: пароль всё это время был с заглавной буквы.",
+  "Будущее туманно, зато в нём точно есть кофе и одно сомнительное решение.",
+  "Сбудется на третью пятницу после дождя. Или завтра. У тыквы мелкий шрифт не читается.",
+  "Духи единогласно проголосовали: да. Один воздержался — он просто уснул."
+];
 
-const plainText = (element) => element.innerText.replace(/\n{3,}/g, "\n\n").trim();
+let soundEnabled = true;
+let audioContext;
+let typingTimer;
+let toastTimer;
 
-function syncCaptionsFromEditor() {
-  questionCaption.innerText = editQuestion.value;
-  answerCaption.innerText = editAnswer.value;
+function hashText(text) {
+  let hash = 17;
+  for (const character of text.toLowerCase()) hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
+  return hash;
 }
 
-function syncEditorFromCaptions() {
-  editQuestion.value = plainText(questionCaption);
-  editAnswer.value = plainText(answerCaption);
+function chooseProphecy(text) {
+  return prophecies[hashText(text) % prophecies.length];
 }
 
-function showMeme(question, answer) {
-  questionCaption.innerText = question;
-  answerCaption.innerText = answer;
-  syncEditorFromCaptions();
-  welcome.hidden = true;
-  memeScreen.hidden = false;
-  document.title = `${question} — Миньон говорит`;
-}
-
-function openEditor() {
-  syncEditorFromCaptions();
-  editor.classList.add("open");
-  editor.setAttribute("aria-hidden", "false");
-  window.setTimeout(() => editQuestion.focus(), 200);
-}
-
-function closeEditor() {
-  const wasOpen = editor.classList.contains("open");
-  syncCaptionsFromEditor();
-  editor.classList.remove("open");
-  editor.setAttribute("aria-hidden", "true");
-
-  // На телефонах тап по «Готово» иногда продолжается уже по кнопке скачивания,
-  // которая оказывается под закрывшейся панелью. Короткая блокировка гасит этот ghost click.
-  if (wasOpen) {
-    downloadButton.disabled = true;
-    window.clearTimeout(downloadUnlockTimer);
-    downloadUnlockTimer = window.setTimeout(() => {
-      downloadButton.disabled = false;
-    }, 600);
+function getAudioContext() {
+  if (!audioContext) {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (AudioCtx) audioContext = new AudioCtx();
   }
+  return audioContext;
+}
+
+function playAwakeningSound() {
+  if (!soundEnabled) return;
+  const context = getAudioContext();
+  if (!context) return;
+  if (context.state === "suspended") context.resume();
+  const now = context.currentTime;
+  const master = context.createGain();
+  const filter = context.createBiquadFilter();
+  master.gain.setValueAtTime(.0001, now);
+  master.gain.exponentialRampToValueAtTime(.16, now + .12);
+  master.gain.exponentialRampToValueAtTime(.0001, now + 2.7);
+  filter.type = "lowpass";
+  filter.frequency.setValueAtTime(700, now);
+  filter.frequency.exponentialRampToValueAtTime(110, now + 2.7);
+  filter.connect(master).connect(context.destination);
+  [55, 82.4, 110].forEach((frequency, index) => {
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = index === 1 ? "triangle" : "sine";
+    oscillator.frequency.value = frequency;
+    gain.gain.value = index === 0 ? .7 : .23;
+    oscillator.connect(gain).connect(filter);
+    oscillator.start(now + index * .04);
+    oscillator.stop(now + 2.8);
+  });
+}
+
+function speakProphecy(text) {
+  if (!soundEnabled || !("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  const voices = window.speechSynthesis.getVoices();
+  utterance.voice = voices.find((voice) => voice.lang.toLowerCase().startsWith("ru")) || null;
+  utterance.lang = "ru-RU";
+  utterance.rate = .78;
+  utterance.pitch = .55;
+  utterance.volume = .95;
+  utterance.onstart = () => stage.classList.add("is-speaking");
+  utterance.onend = () => stage.classList.remove("is-speaking");
+  utterance.onerror = () => stage.classList.remove("is-speaking");
+  window.speechSynthesis.speak(utterance);
+}
+
+function typeProphecy(text) {
+  window.clearInterval(typingTimer);
+  prediction.textContent = "";
+  result.classList.remove("is-complete");
+  stage.classList.add("is-speaking");
+  speakProphecy(text);
+  let index = 0;
+  typingTimer = window.setInterval(() => {
+    prediction.textContent += text[index];
+    index += 1;
+    if (index >= text.length) {
+      window.clearInterval(typingTimer);
+      if (!window.speechSynthesis?.speaking) stage.classList.remove("is-speaking");
+      result.classList.add("is-complete");
+      stageCaption.textContent = "Пророчество завершено";
+    }
+  }, 34);
+}
+
+function revealProphecy(text) {
+  const answer = chooseProphecy(text);
+  resultQuestion.textContent = `«${text}»`;
+  result.hidden = false;
+  stage.classList.add("is-awake");
+  stageCaption.textContent = "Связь с потусторонним установлена";
+  playAwakeningSound();
+  window.setTimeout(() => {
+    typeProphecy(answer);
+    result.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, 720);
 }
 
 function showToast(message) {
+  window.clearTimeout(toastTimer);
   toast.textContent = message;
   toast.classList.add("show");
-  window.setTimeout(() => toast.classList.remove("show"), 2200);
+  toastTimer = window.setTimeout(() => toast.classList.remove("show"), 2200);
 }
+
+function createEmbers() {
+  const fragment = document.createDocumentFragment();
+  for (let index = 0; index < 24; index += 1) {
+    const ember = document.createElement("i");
+    ember.className = "ember";
+    ember.style.setProperty("--x", `${Math.random() * 100}%`);
+    ember.style.setProperty("--size", `${1 + Math.random() * 2.2}px`);
+    ember.style.setProperty("--duration", `${7 + Math.random() * 10}s`);
+    ember.style.setProperty("--delay", `${Math.random() * -15}s`);
+    ember.style.setProperty("--drift", `${-50 + Math.random() * 100}px`);
+    fragment.appendChild(ember);
+  }
+  $("#embers").appendChild(fragment);
+}
+
+question.addEventListener("input", () => { charCount.textContent = question.value.length; });
 
 form.addEventListener("submit", (event) => {
   event.preventDefault();
-  showMeme(questionInput.value.trim(), answerInput.value.trim());
+  const text = question.value.trim();
+  if (!text) return question.focus();
+  revealProphecy(text);
 });
 
-$("#edit-button").addEventListener("click", openEditor);
-$("#close-editor").addEventListener("click", closeEditor);
-$("#editor-backdrop").addEventListener("click", closeEditor);
-doneButton.addEventListener("pointerdown", (event) => event.stopPropagation());
-doneButton.addEventListener("click", (event) => {
-  event.preventDefault();
-  event.stopPropagation();
-  closeEditor();
-});
-editQuestion.addEventListener("input", syncCaptionsFromEditor);
-editAnswer.addEventListener("input", syncCaptionsFromEditor);
-questionCaption.addEventListener("input", syncEditorFromCaptions);
-answerCaption.addEventListener("input", syncEditorFromCaptions);
-
-function applyCaptionSize() {
-  const compactScreen = window.matchMedia("(max-width: 680px), (max-height: 500px) and (max-width: 900px)").matches;
-  const mobileScale = compactScreen ? 0.66 : 1;
-  document.documentElement.style.setProperty("--caption-size", `${Math.round(Number(fontSize.value) * mobileScale)}px`);
-  fontSizeValue.value = fontSize.value;
-}
-
-fontSize.addEventListener("input", applyCaptionSize);
-window.addEventListener("resize", applyCaptionSize);
-applyCaptionSize();
-
-function applyFontFamily() {
-  const selectedFont = fontFamily.value;
-  document.documentElement.style.setProperty("--caption-font", selectedFont);
-  questionCaption.style.fontFamily = selectedFont;
-  answerCaption.style.fontFamily = selectedFont;
-  fontFamily.style.fontFamily = selectedFont;
-}
-
-// iOS/Android могут отправлять input раньше change у нативного select.
-fontFamily.addEventListener("input", applyFontFamily);
-fontFamily.addEventListener("change", applyFontFamily);
-applyFontFamily();
-
-document.querySelectorAll('input[name="text-color"]').forEach((radio) => {
-  radio.addEventListener("change", () => {
-    document.documentElement.style.setProperty("--text-color", radio.value);
-  });
+$("#again-button").addEventListener("click", () => {
+  window.clearInterval(typingTimer);
+  window.speechSynthesis?.cancel();
+  result.hidden = true;
+  result.classList.remove("is-complete");
+  stage.classList.remove("is-speaking", "is-awake");
+  stageCaption.textContent = "Оракул снова дремлет…";
+  question.value = "";
+  charCount.textContent = "0";
+  form.scrollIntoView({ behavior: "smooth", block: "center" });
+  window.setTimeout(() => question.focus(), 450);
 });
 
-customColor.addEventListener("input", () => {
-  document.querySelectorAll('input[name="text-color"]').forEach((radio) => { radio.checked = false; });
-  document.documentElement.style.setProperty("--text-color", customColor.value);
-});
-
-$("#restart-button").addEventListener("click", () => {
-  closeEditor();
-  memeScreen.hidden = true;
-  welcome.hidden = false;
-  document.title = "Миньон говорит — редактор мема";
-  questionInput.focus();
-});
-
-$("#fullscreen-button").addEventListener("click", async () => {
+$("#share-button").addEventListener("click", async () => {
+  const text = `Мой вопрос: ${resultQuestion.textContent}\nПророчество: ${prediction.textContent}`;
   try {
-    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-      memeScreen.classList.remove("controls-visible");
-      const requestFullscreen = memeScreen.requestFullscreen || memeScreen.webkitRequestFullscreen;
-      if (!requestFullscreen) throw new Error("Fullscreen API is unavailable");
-      await requestFullscreen.call(memeScreen);
-    } else {
-      const exitFullscreen = document.exitFullscreen || document.webkitExitFullscreen;
-      if (exitFullscreen) await exitFullscreen.call(document);
-    }
+    await navigator.clipboard.writeText(text);
+    showToast("Пророчество скопировано");
   } catch {
-    showToast("Полноэкранный режим недоступен");
+    showToast("Тьма не дала доступ к буферу обмена");
   }
 });
 
-let fullscreenControlsArmed = false;
-
-function isMemeFullscreen() {
-  return document.fullscreenElement === memeScreen || document.webkitFullscreenElement === memeScreen;
-}
-
-function handleFullscreenChange() {
-  memeScreen.classList.remove("controls-visible");
-  fullscreenControlsArmed = false;
-
-  if (isMemeFullscreen() && document.activeElement instanceof HTMLElement) {
-    document.activeElement.blur();
-  }
-}
-
-document.addEventListener("fullscreenchange", handleFullscreenChange);
-document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
-
-memeScreen.addEventListener("pointermove", (event) => {
-  if (!isMemeFullscreen()) return;
-
-  const activationEdge = 12;
-  const atEdge = event.clientY <= activationEdge || event.clientY >= window.innerHeight - activationEdge;
-  const overPanel = event.clientY <= topbar.offsetHeight || event.clientY >= window.innerHeight - bottomActions.offsetHeight;
-
-  // После входа курсор остаётся на кнопке полноэкранного режима. Сначала
-  // ждём, пока он уйдёт в центральную область, чтобы панели точно скрылись.
-  if (!fullscreenControlsArmed) {
-    if (!overPanel) fullscreenControlsArmed = true;
-    return;
-  }
-
-  if (memeScreen.classList.contains("controls-visible")) {
-    if (!overPanel) memeScreen.classList.remove("controls-visible");
-  } else if (atEdge) {
-    memeScreen.classList.add("controls-visible");
+soundToggle.addEventListener("click", () => {
+  soundEnabled = !soundEnabled;
+  soundToggle.setAttribute("aria-pressed", String(soundEnabled));
+  soundToggle.setAttribute("aria-label", soundEnabled ? "Выключить звук" : "Включить звук");
+  soundLabel.textContent = soundEnabled ? "Звук включён" : "Без звука";
+  if (!soundEnabled) {
+    window.speechSynthesis?.cancel();
+    stage.classList.remove("is-speaking");
+  } else {
+    const context = getAudioContext();
+    if (context?.state === "suspended") context.resume();
   }
 });
 
-memeScreen.addEventListener("pointerdown", (event) => {
-  if (!isMemeFullscreen() || event.pointerType === "mouse") return;
-
-  const controlsVisible = memeScreen.classList.contains("controls-visible");
-  const overPanel = event.clientY <= topbar.offsetHeight || event.clientY >= window.innerHeight - bottomActions.offsetHeight;
-  const editingCaption = event.target.closest?.(".caption");
-
-  // На сенсорном экране hover отсутствует: первое касание в любом месте
-  // показывает обе панели, касание по мему повторно их скрывает.
-  if (!controlsVisible) {
-    memeScreen.classList.add("controls-visible");
-  } else if (!overPanel && !editingCaption) {
-    memeScreen.classList.remove("controls-visible");
-  }
-});
-
-fullscreenEdges.forEach((edge) => {
-  edge.addEventListener("click", () => memeScreen.classList.add("controls-visible"));
-});
-
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && editor.classList.contains("open")) closeEditor();
-});
-
-function wrapLines(context, text, maxWidth) {
-  const paragraphs = text.split(/\n/);
-  const lines = [];
-  paragraphs.forEach((paragraph) => {
-    const words = paragraph.trim().split(/\s+/).filter(Boolean);
-    if (!words.length) return lines.push("");
-    let line = "";
-    words.forEach((word) => {
-      const test = line ? `${line} ${word}` : word;
-      if (context.measureText(test).width > maxWidth && line) {
-        lines.push(line);
-        line = word;
-      } else {
-        line = test;
-      }
-    });
-    if (line) lines.push(line);
+window.addEventListener("pointermove", (event) => {
+  if (event.pointerType && event.pointerType !== "mouse") return;
+  const x = Math.max(-9, Math.min(9, (event.clientX / window.innerWidth - .5) * 18));
+  const y = Math.max(-6, Math.min(6, (event.clientY / window.innerHeight - .5) * 12));
+  document.querySelectorAll(".pupil").forEach((pupil) => {
+    pupil.style.setProperty("--eye-x", `${x}px`);
+    pupil.style.setProperty("--eye-y", `${y}px`);
   });
-  return lines;
-}
-
-function drawCaption(context, text, y, fromBottom, canvas) {
-  const size = Number(fontSize.value) * (canvas.width / $("#meme-frame").clientWidth);
-  const lineHeight = size * 1.05;
-  const selectedFont = getComputedStyle(questionCaption).fontFamily;
-  context.font = `900 ${size}px ${selectedFont}`;
-  context.textAlign = "center";
-  context.textBaseline = "top";
-  context.lineJoin = "round";
-  context.lineWidth = Math.max(5, size * .12);
-  context.strokeStyle = "#000000";
-  context.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--text-color").trim();
-  const lines = wrapLines(context, text.toUpperCase(), canvas.width * .88);
-  const totalHeight = lines.length * lineHeight;
-  let currentY = fromBottom ? y - totalHeight : y;
-  lines.forEach((line) => {
-    context.strokeText(line, canvas.width / 2, currentY);
-    context.fillText(line, canvas.width / 2, currentY);
-    currentY += lineHeight;
-  });
-}
-
-downloadButton.addEventListener("click", () => {
-  const image = $("#meme-image");
-  const canvas = document.createElement("canvas");
-  canvas.width = image.naturalWidth;
-  canvas.height = image.naturalHeight;
-  const context = canvas.getContext("2d");
-  context.drawImage(image, 0, 0, canvas.width, canvas.height);
-  drawCaption(context, plainText(questionCaption), canvas.height * .05, false, canvas);
-  drawCaption(context, plainText(answerCaption), canvas.height * .96, true, canvas);
-  const link = document.createElement("a");
-  link.download = "minion-meme.jpg";
-  link.href = canvas.toDataURL("image/jpeg", .94);
-  link.click();
-  showToast("Мем сохранён в JPG");
 });
+
+createEmbers();

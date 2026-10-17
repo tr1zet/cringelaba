@@ -1,113 +1,87 @@
 <!doctype html>
 <html lang="ru">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#f6ce2f" />
-    <meta name="description" content="Интерактивный редактор мема с миньоном" />
-    <title>Миньон говорит — редактор мема</title>
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <main class="app">
-      <section class="welcome" id="welcome" aria-labelledby="welcome-title">
-        <div class="welcome__glow" aria-hidden="true"></div>
-        <div class="welcome__card">
-          <div class="eyebrow"><span></span> Генератор неловких ответов</div>
-          <h1 id="welcome-title">Миньон<br /><em>говорит.</em></h1>
-          <p class="welcome__lead">Задай вопрос, придумай ответ — и получи мем, который слишком жизненный, чтобы им не поделиться.</p>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#09060d">
+  <meta name="description" content="Задай вопрос говорящей тыкве и узнай своё пугающе нелепое будущее.">
+  <title>Тыквенный оракул — полуночное предсказание</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="scene" aria-hidden="true">
+    <div class="moon"></div><div class="stars"></div>
+    <div class="bat bat--one">⌁</div><div class="bat bat--two">⌁</div>
+    <div class="fog fog--one"></div><div class="fog fog--two"></div>
+    <div class="embers" id="embers"></div>
+  </div>
 
-          <form class="meme-form" id="meme-form">
-            <label for="question">Вопрос</label>
-            <textarea id="question" name="question" rows="2" maxlength="90" placeholder="Например: Ты уже сделал лабу?" required></textarea>
+  <header class="topbar">
+    <a class="brand" href="#top" aria-label="Тыквенный оракул — на главную">
+      <span class="brand__mark">✦</span><span>Тыквенный оракул</span>
+    </a>
+    <div class="session-status" aria-label="Статус сеанса">
+      <span class="session-status__dot"></span>Сеанс открыт до рассвета
+    </div>
+    <button class="sound-toggle" id="sound-toggle" type="button" aria-pressed="true" aria-label="Выключить звук">
+      <span class="sound-toggle__icon" aria-hidden="true">◖</span>
+      <span class="sound-toggle__label">Звук включён</span>
+    </button>
+  </header>
 
-            <label for="answer">Ответ</label>
-            <textarea id="answer" name="answer" rows="2" maxlength="90" placeholder="Например: Я морально готовлюсь" required></textarea>
-
-            <button class="primary-button" type="submit">
-              Создать мем
-              <span aria-hidden="true">↗</span>
-            </button>
-          </form>
-        </div>
-      </section>
-
-      <section class="meme-screen" id="meme-screen" aria-label="Редактор мема" hidden>
-        <header class="topbar">
-          <button class="home-button" id="restart-button" type="button" aria-label="Вернуться на главную">
-            <span class="home-button__icon" aria-hidden="true">↙</span>
-            <span class="home-button__text"><small>Назад к форме</small><span class="home-button__desktop">Вернуться домой</span><span class="home-button__mobile">Домой</span></span>
+  <main id="top">
+    <section class="oracle-layout" aria-labelledby="main-title">
+      <div class="intro">
+        <p class="eyebrow"><span></span> Полуночный сеанс № 13</p>
+        <h1 id="main-title">Спроси у<br><em>тьмы</em></h1>
+        <p class="lead">Она уже знает ответ. Просто ещё не решила, насколько сильно тебя напугать.</p>
+        <form class="question-card" id="oracle-form">
+          <label for="question">Твой вопрос о будущем</label>
+          <div class="input-wrap">
+            <textarea id="question" name="question" rows="2" maxlength="140" required placeholder="Получу ли я зачёт?.."></textarea>
+            <span class="char-count"><b id="char-count">0</b>/140</span>
+          </div>
+          <button class="summon-button" type="submit">
+            <span>Разбудить оракула</span><span class="summon-button__orb" aria-hidden="true">✦</span>
           </button>
-          <div class="topbar__actions">
-            <button class="icon-button" id="fullscreen-button" type="button" aria-label="Открыть во весь экран" title="Во весь экран">⛶</button>
-            <button class="secondary-button" id="edit-button" type="button">✎ Редактировать</button>
-          </div>
-        </header>
+          <p class="hint"><span>☾</span> Лучше спрашивать после полуночи. Но мы никому не скажем.</p>
+        </form>
+      </div>
 
-        <button class="fullscreen-edge fullscreen-edge--top" type="button" aria-label="Показать панели управления"></button>
-        <button class="fullscreen-edge fullscreen-edge--bottom" type="button" aria-label="Показать панели управления"></button>
-
-        <div class="canvas-shell">
-          <div class="meme-frame" id="meme-frame">
-            <img id="meme-image" src="assets/minion.jpg" alt="Миньон стоит ночью в лесу" />
-            <div class="caption caption--top" id="question-caption" contenteditable="true" role="textbox" aria-label="Текст вопроса" spellcheck="false"></div>
-            <div class="caption caption--bottom" id="answer-caption" contenteditable="true" role="textbox" aria-label="Текст ответа" spellcheck="false"></div>
-            <div class="edit-badge" id="edit-badge">Нажми на текст, чтобы изменить</div>
+      <div class="oracle-stage" id="oracle-stage">
+        <div class="sigil sigil--outer" aria-hidden="true"></div><div class="sigil sigil--inner" aria-hidden="true"></div>
+        <div class="stage-smoke stage-smoke--left" aria-hidden="true"></div><div class="stage-smoke stage-smoke--right" aria-hidden="true"></div>
+        <div class="pumpkin-wrap" aria-hidden="true">
+          <div class="stem"><i></i></div>
+          <div class="pumpkin" id="pumpkin">
+            <span class="pumpkin__lobe pumpkin__lobe--1"></span><span class="pumpkin__lobe pumpkin__lobe--2"></span>
+            <span class="pumpkin__lobe pumpkin__lobe--3"></span><span class="pumpkin__lobe pumpkin__lobe--4"></span><span class="pumpkin__lobe pumpkin__lobe--5"></span>
+            <div class="face">
+              <div class="eye eye--left"><i class="pupil"></i></div><div class="eye eye--right"><i class="pupil"></i></div>
+              <div class="nose"></div><div class="mouth"><i></i><i></i><i></i><i></i><i></i></div>
+            </div>
           </div>
+          <div class="table-shadow"></div>
         </div>
+        <div class="speech-rune" aria-hidden="true">ᛟ</div>
+        <p class="stage-caption" id="stage-caption">Оракул дремлет… пока что</p>
+      </div>
+    </section>
 
-        <footer class="bottom-actions">
-          <p><span class="status-dot"></span> Мем готов</p>
-          <button class="download-button" id="download-button" type="button">Скачать JPG <span aria-hidden="true">↓</span></button>
-        </footer>
+    <section class="result" id="result" aria-live="polite" aria-labelledby="result-title" hidden>
+      <div class="result__ornament" aria-hidden="true">✦ ─── ☾ ─── ✦</div>
+      <p class="result__question" id="result-question"></p>
+      <h2 id="result-title">Оракул шепчет</h2>
+      <blockquote id="prediction"></blockquote>
+      <div class="result__actions">
+        <button class="again-button" id="again-button" type="button">Задать другой вопрос</button>
+        <button class="share-button" id="share-button" type="button">Скопировать пророчество <span>↗</span></button>
+      </div>
+    </section>
+  </main>
 
-        <aside class="editor" id="editor" aria-labelledby="editor-title" aria-hidden="true">
-          <div class="editor__head">
-            <div>
-              <span class="eyebrow">Настройки</span>
-              <h2 id="editor-title">Редактор текста</h2>
-            </div>
-            <button class="close-button" id="close-editor" type="button" aria-label="Закрыть редактор">×</button>
-          </div>
-
-          <label for="edit-question">Вопрос</label>
-          <textarea id="edit-question" rows="2" maxlength="90"></textarea>
-          <label for="edit-answer">Ответ</label>
-          <textarea id="edit-answer" rows="2" maxlength="90"></textarea>
-
-          <div class="editor__row">
-            <label for="font-size">Размер <output id="font-size-value">48</output></label>
-            <input id="font-size" type="range" min="26" max="74" value="48" />
-          </div>
-
-          <label for="font-family">Шрифт</label>
-          <select id="font-family">
-            <option value='Impact, "Arial Black", sans-serif'>Классический мем</option>
-            <option value='"Arial Black", Arial, sans-serif'>Жирный</option>
-            <option value='Georgia, "Times New Roman", serif'>Драматичный</option>
-            <option value='"Trebuchet MS", Arial, sans-serif'>Комикс</option>
-          </select>
-
-          <fieldset>
-            <legend>Цвет текста</legend>
-            <div class="color-options">
-              <label><input type="radio" name="text-color" value="#ffffff" checked /><span class="swatch swatch--white"></span>Белый</label>
-              <label><input type="radio" name="text-color" value="#f6ce2f" /><span class="swatch swatch--yellow"></span>Жёлтый</label>
-              <label><input type="radio" name="text-color" value="#63d6ff" /><span class="swatch swatch--blue"></span>Голубой</label>
-              <label><input type="radio" name="text-color" value="#ff6fae" /><span class="swatch swatch--pink"></span>Розовый</label>
-              <label><input type="radio" name="text-color" value="#7ee081" /><span class="swatch swatch--green"></span>Зелёный</label>
-              <label><input type="radio" name="text-color" value="#ff8f3d" /><span class="swatch swatch--orange"></span>Оранжевый</label>
-              <label class="custom-color"><input id="custom-color" type="color" value="#b388ff" /><span>Свой цвет</span></label>
-            </div>
-          </fieldset>
-
-          <button class="primary-button" id="done-button" type="button">Готово <span aria-hidden="true">✓</span></button>
-        </aside>
-        <button class="editor-backdrop" id="editor-backdrop" type="button" aria-label="Закрыть редактор" tabindex="-1"></button>
-      </section>
-    </main>
-
-    <div class="toast" id="toast" role="status" aria-live="polite">Мем сохранён</div>
-    <script src="app.js"></script>
-  </body>
+  <footer><span>Не принимайте пророчества близко к сердцу</span><span class="footer-symbol">☠</span><span>Особенно если они сбылись</span></footer>
+  <div class="toast" id="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
 </html>
